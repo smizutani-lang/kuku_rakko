@@ -909,6 +909,13 @@ dialog.names-modal { width:min(1120px,calc(100% - 28px)); }
 #reward-goal small { font-size:13px; }
 .next-growth { font-size:14px; }
 .result-panel h1, .growth-celebration strong, .guide-bubble strong, .help-step strong, .modal-actions .btn, .feedback-hint, .wrong-chips { word-break:keep-all; overflow-wrap:anywhere; }
+
+/* おすすめ札：A=オレンジ、日替わりB=青。最大2つ */
+.dan-button.tag-daily { border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-soft); }
+.dan-button.tag-daily .dan-tag { background:var(--blue); }
+.dan-tag { max-width:calc(100% + 6px); overflow:hidden; text-overflow:ellipsis; }
+@media (max-width:600px) { .dan-tag { font-size:11px; padding:0 6px; } }
+.dan-grid { row-gap:13px; }
 </style>
   
   
@@ -1319,9 +1326,9 @@ window.KUKU_REACTIONS=[{"happy":"data:image/webp;base64,UklGRvo3AABXRUJQVlA4WAoA
   function home() {
     clearGame(); screen='home'; const growth=E.growth(profile.ownedIds.length), n=profile.ownedIds.length;
     const next=growth.nextThreshold, pct=next===null?100:Math.max(0,Math.min(100,(n-growth.threshold)/(next-growth.threshold)*100));
-    const first=profile.stats.plays===0, rec=first?1:(Array.from({length:9},(_,i)=>i+1).find(d=>(profile.records.normal[`${d}:${profile.settings.order}`]?.bestCorrect??0)<8)||null);
+    const first=profile.stats.plays===0, recs=recommendDans(), tagFor=d=>recs.a?.dan===d?recs.a:recs.b?.dan===d?recs.b:null;
     const guideHtml=`<div class="guide-bubble" role="note"><p class="guide-path"><span>九九を とく</span><span aria-hidden="true">→</span><span>ネーム ゲット</span><span aria-hidden="true">→</span><span>らっこが 成長！</span></p><strong>まずは １のだんから やってみよう！</strong></div>`;
-    shell(`<main id="main" tabindex="-1" class="screen home-grid ${first?'is-first-run':''}"><section class="hero-panel" aria-label="主人公と成長"><div class="row"><span class="eyebrow">チャレンジネーム</span><span class="badge">すがた ${profile.outfit+1} / 10</span></div><button class="hero-name" data-action="name" aria-label="チャレンジネームをかえる">${nameHtml()} <small>✎</small></button>${first?guideHtml:`<div class="best-row" aria-label="ベストきろく"><span class="badge">◷ タイムアタック ベスト <strong>${profile.records.survival.plays>0?profile.records.survival.bestScore+'点':'まだなし'}</strong></span><span class="badge">✎ ぶんしょう ベスト <strong>${profile.records.hard.plays>0?profile.records.hard.bestCorrect+' / 10':'まだなし'}</strong></span></div>`}<button class="character-stage" data-action="outfits" aria-label="やすはらっこのおきがえ"><span class="math-decoration deco-one" aria-hidden="true">＋</span><span class="math-decoration deco-two" aria-hidden="true">×</span><span class="math-decoration deco-three" aria-hidden="true">△</span><img class="character-image" src="${art(profile.outfit+1)}" alt="やすはらっこ（${JOBS[profile.outfit]}）"></button><div class="collection-stat"><span>あつめたネーム</span><strong>${n}<small> / 500 こ</small></strong></div><div class="progress-track" role="progressbar" aria-label="つぎのすがたまで" aria-valuenow="${n}" aria-valuemin="${growth.threshold}" aria-valuemax="${next||500}"><div class="progress-fill" style="width:${pct}%"></div></div><p class="next-growth">${next===null?'✧ 500こ コンプリート！':`つぎのすがたまで <strong>あと ${growth.remaining}こ</strong>`}</p></section><section class="learn-panel"><div class="section-heading"><div><h1>どのだんに する？</h1></div></div><div class="segmented" aria-label="出題順"><button data-action="order" data-value="sequential" aria-pressed="${profile.settings.order==='sequential'}">じゅんばん</button><button data-action="order" data-value="random" aria-pressed="${profile.settings.order==='random'}">ランダム</button></div><div class="dan-grid">${Array.from({length:9},(_,i)=>{const d=i+1,r=profile.records.normal[`${d}:${profile.settings.order}`];return `<button class="dan-button ${r?.bestCorrect===9?'cleared':''} ${d===rec?'is-recommended':''} ${first&&d===1?'is-first':''}" data-action="normal" data-dan="${d}" aria-label="${d}のだん${r?.bestCorrect===9?' クリアずみ':''}${d===rec?' おすすめ':''}">${d===rec?`<span class="dan-tag" aria-hidden="true">${first?'ここから！':'おすすめ'}</span>`:''}<span class="dan-number">${d}<small>のだん</small></span><span class="dan-record">${r?.bestCorrect===9?'✓ クリア':r?`ベスト ${r.bestCorrect} / 9`:''}${r?.bestTimeMs?` · ${(r.bestTimeMs/1000).toFixed(1)}秒`:''}</span></button>`}).join('')}</div><div class="challenge-grid"><button class="challenge-card hard-card" data-action="hard"><span class="challenge-icon" aria-hidden="true">✎</span><span><strong>ぶんしょう</strong><small>しきと こたえを入力</small></span></button><button class="challenge-card survival-card" data-action="survival"><span class="challenge-icon" aria-hidden="true">◷</span><span><strong>タイムアタック！</strong><small>ぜんぶのだん・60秒</small></span></button></div></section></main><nav class="bottom-nav" aria-label="コレクション"><button data-action="collection">▤ <span>ネーム <small>${n} / 500</small></span></button><button data-action="outfits">✧ <span>おきがえ <small>${growth.stage} / 10</small></span></button><button data-action="records">▥ <span>きろく</span></button><button data-action="help">？ <span>あそびかた</span></button></nav>`);
+    shell(`<main id="main" tabindex="-1" class="screen home-grid ${first?'is-first-run':''}"><section class="hero-panel" aria-label="主人公と成長"><div class="row"><span class="eyebrow">チャレンジネーム</span><span class="badge">すがた ${profile.outfit+1} / 10</span></div><button class="hero-name" data-action="name" aria-label="チャレンジネームをかえる">${nameHtml()} <small>✎</small></button>${first?guideHtml:`<div class="best-row" aria-label="ベストきろく"><span class="badge">◷ タイムアタック ベスト <strong>${profile.records.survival.plays>0?profile.records.survival.bestScore+'点':'まだなし'}</strong></span><span class="badge">✎ ぶんしょう ベスト <strong>${profile.records.hard.plays>0?profile.records.hard.bestCorrect+' / 10':'まだなし'}</strong></span></div>`}<button class="character-stage" data-action="outfits" aria-label="やすはらっこのおきがえ"><span class="math-decoration deco-one" aria-hidden="true">＋</span><span class="math-decoration deco-two" aria-hidden="true">×</span><span class="math-decoration deco-three" aria-hidden="true">△</span><img class="character-image" src="${art(profile.outfit+1)}" alt="やすはらっこ（${JOBS[profile.outfit]}）"></button><div class="collection-stat"><span>あつめたネーム</span><strong>${n}<small> / 500 こ</small></strong></div><div class="progress-track" role="progressbar" aria-label="つぎのすがたまで" aria-valuenow="${n}" aria-valuemin="${growth.threshold}" aria-valuemax="${next||500}"><div class="progress-fill" style="width:${pct}%"></div></div><p class="next-growth">${next===null?'✧ 500こ コンプリート！':`つぎのすがたまで <strong>あと ${growth.remaining}こ</strong>`}</p></section><section class="learn-panel"><div class="section-heading"><div><h1>どのだんに する？</h1></div></div><div class="segmented" aria-label="出題順"><button data-action="order" data-value="sequential" aria-pressed="${profile.settings.order==='sequential'}">じゅんばん</button><button data-action="order" data-value="random" aria-pressed="${profile.settings.order==='random'}">ランダム</button></div><div class="dan-grid">${Array.from({length:9},(_,i)=>{const d=i+1,r=profile.records.normal[`${d}:${profile.settings.order}`];const tg=tagFor(d);return `<button class="dan-button ${r?.bestCorrect===9?'cleared':''} ${tg?'is-recommended tag-'+tg.kind:''} ${first&&d===1?'is-first':''}" data-action="normal" data-dan="${d}"${tg?.order?` data-order="${tg.order}"`:''} aria-label="${d}のだん${r?.bestCorrect===9?' クリアずみ':''}${tg?' '+tg.label:''}">${tg?`<span class="dan-tag" aria-hidden="true">${tg.label}</span>`:''}<span class="dan-number">${d}<small>のだん</small></span><span class="dan-record">${r?.bestCorrect===9?'✓ クリア':r?`ベスト ${r.bestCorrect} / 9`:''}${r?.bestTimeMs?` · ${(r.bestTimeMs/1000).toFixed(1)}秒`:''}</span></button>`}).join('')}</div><div class="challenge-grid"><button class="challenge-card hard-card" data-action="hard"><span class="challenge-icon" aria-hidden="true">✎</span><span><strong>ぶんしょう</strong><small>しきと こたえを入力</small></span></button><button class="challenge-card survival-card" data-action="survival"><span class="challenge-icon" aria-hidden="true">◷</span><span><strong>タイムアタック！</strong><small>ぜんぶのだん・60秒</small></span></button></div></section></main><nav class="bottom-nav" aria-label="コレクション"><button data-action="collection">▤ <span>ネーム <small>${n} / 500</small></span></button><button data-action="outfits">✧ <span>おきがえ <small>${growth.stage} / 10</small></span></button><button data-action="records">▥ <span>きろく</span></button><button data-action="help">？ <span>あそびかた</span></button></nav>`);
     if(recovered){recovered=false;toast('保存されたきろくを確認しました。大切なきろくはファイルにも保存できます。');}
   }
   function clearGame(){ if(game){clearInterval(game.clock);clearTimeout(game.transition);} game=null; gameId++; }
@@ -1329,9 +1336,10 @@ window.KUKU_REACTIONS=[{"happy":"data:image/webp;base64,UklGRvo3AABXRUJQVlA4WAoA
   function resume(reason){if(!game||game.finished||!game.pauses.has(reason))return;game.pauses.delete(reason);if(game.pauses.size===0&&game.pauseAt!==null){const delta=performance.now()-game.pauseAt;game.deadline+=delta;if(game.countdown)game.countdown.deadline+=delta;if(game.startCueUntil)game.startCueUntil+=delta;game.pausedMs+=delta;game.pauseAt=null;}}
   function remaining(){return game?Math.max(0,game.deadline-(game.pauses.size?game.pauseAt:performance.now())):0;}
   function elapsed(){return game?performance.now()-game.started-game.pausedMs-(game.pauses.size?performance.now()-game.pauseAt:0):0;}
-  function start(mode,dan,retryQs){
-    closeModal();clearGame();screen='play';lastAttempt={mode,dan,order:profile.settings.order};
-    const started=performance.now();game={id:gameId,mode,dan,order:profile.settings.order,started,deadline:started+60000,pausedMs:0,pauseAt:null,pauses:new Set(),retry:!!retryQs,questions:retryQs||(mode==='normal'?E.createNormal(dan,profile.settings.order):mode==='hard'?E.createHard():null),bag:mode==='survival'?E.createBag():null,index:0,correct:0,total:0,streak:0,locked:mode==='survival',finished:false,log:[]};
+  function start(mode,dan,retryQs,orderOverride){
+    const ord=orderOverride==='random'||orderOverride==='sequential'?orderOverride:profile.settings.order;
+    closeModal();clearGame();screen='play';lastAttempt={mode,dan,order:ord};
+    const started=performance.now();game={id:gameId,mode,dan,order:ord,started,deadline:started+60000,pausedMs:0,pauseAt:null,pauses:new Set(),retry:!!retryQs,questions:retryQs||(mode==='normal'?E.createNormal(dan,ord):mode==='hard'?E.createHard():null),bag:mode==='survival'?E.createBag():null,index:0,correct:0,total:0,streak:0,locked:mode==='survival',finished:false,log:[]};
     if(mode==='survival'){
       game.countdown={index:0,deadline:started+1000};
       showCountdown();game.clock=setInterval(tick,50);
@@ -1438,7 +1446,7 @@ window.KUKU_REACTIONS=[{"happy":"data:image/webp;base64,UklGRvo3AABXRUJQVlA4WAoA
     const g=game;
     if(!g?.finished || screen!=='result' || g.restarting)return;
     if(resultMood(g)!=='sad'){
-      start(g.mode,g.dan,retryQuestions);
+      start(g.mode,g.dan,retryQuestions,g.order);
       return;
     }
     const mascot=document.querySelector('.result-mascot');
@@ -1452,7 +1460,7 @@ window.KUKU_REACTIONS=[{"happy":"data:image/webp;base64,UklGRvo3AABXRUJQVlA4WAoA
     main.querySelectorAll('[data-action="replay"],[data-action="retry-wrong"],[data-action="next-dan"]').forEach(button=>button.disabled=true);
     focusElement(main);main.scrollTop=0;
     g.transition=setTimeout(()=>{
-      if(game===g && screen==='result')start(g.mode,g.dan,retryQuestions);
+      if(game===g && screen==='result')start(g.mode,g.dan,retryQuestions,g.order);
     },750);
   }
   function finish(){
@@ -1468,14 +1476,42 @@ window.KUKU_REACTIONS=[{"happy":"data:image/webp;base64,UklGRvo3AABXRUJQVlA4WAoA
     const score=g.correct*5,success=g.retry?g.correct===g.total:g.mode==='normal'?g.correct>=8:g.mode==='hard'?g.correct>=8:decision.count>0;const curBest=g.mode==='survival'?score:g.correct,bestUnit=g.mode==='survival'?'点':'もん';lastAttempt.wrong=g.mode==='survival'?[]:g.log.filter(x=>!x.correct).map(x=>x.q);
     const uniqWrong=[...new Map(g.log.filter(x=>!x.correct).map(x=>[x.q.a+'x'+x.q.b,x.q])).values()];
     const wrongChips=uniqWrong.length?`<div class="wrong-chips" aria-label="れんしゅうする九九"><span>れんしゅうしよう</span>${uniqWrong.slice(0,3).map(q=>`<strong>${q.a} × ${q.b} ＝ ${q.answer}</strong>`).join('')}${uniqWrong.length>3?`<small>ほか ${uniqWrong.length-3}こ</small>`:''}</div>`:'';
-    const canRetryWrong=g.mode!=='survival'&&g.log.some(x=>!x.correct), nextDan=g.mode==='normal'&&!g.retry&&success&&g.dan<9?g.dan+1:null, acts=[];
+    const canRetryWrong=g.mode!=='survival'&&g.log.some(x=>!x.correct), nextRec=g.mode==='normal'&&!g.retry&&success?(()=>{const h=recommendDans(),same=[h.a,h.b].find(x=>x&&x.dan!==g.dan);if(same)return same;const r=recommendDans(g.dan);return r.a||r.b;})():null, nextDan=nextRec?.dan??null, acts=[];
     if(mood==='sad'&&canRetryWrong)acts.push(['retry-wrong','まちがえたもんだい もういちど',1],['replay','もういちど',0]);
-    else if(nextDan){acts.push(['next-dan',`つぎは ${nextDan}のだん`,1],['replay','もういちど',0]);if(canRetryWrong)acts.push(['retry-wrong','まちがえたもんだい もういちど',0]);}
+    else if(nextDan){acts.push(['next-dan',`つぎは ${nextDan}のだん${nextRec.order==='random'?'（ランダム）':''}`,1],['replay','もういちど',0]);if(canRetryWrong)acts.push(['retry-wrong','まちがえたもんだい もういちど',0]);}
     else{acts.push(['replay','もういちど',1]);if(canRetryWrong)acts.push(['retry-wrong','まちがえたもんだい もういちど',0]);}
     acts.push(['home','ホームへ',0]);if(rewards.length)acts.push(['name','ネームを えらぶ',0]);
-    const actionsHtml=`<div class="modal-actions">${acts.map(([a,l,p])=>`<button class="btn ${p?'btn-primary':'btn-secondary'}" data-action="${a}"${a==='next-dan'?` data-dan="${nextDan}"`:''}>${l}</button>`).join('')}</div>`;
+    const actionsHtml=`<div class="modal-actions">${acts.map(([a,l,p])=>`<button class="btn ${p?'btn-primary':'btn-secondary'}" data-action="${a}"${a==='next-dan'?` data-dan="${nextDan}"${nextRec.order?` data-order="${nextRec.order}"`:''}`:''}>${l}</button>`).join('')}</div>`;
     shell(`<main id="main" tabindex="-1" class="screen result-panel"><div class="result-lead"><img class="result-mascot" data-mood="${mood}" src="${reactionArt(g.resultStage,mood)}" alt="${reactionAlt(g.resultStage,mood)}"><div><span class="eyebrow">${success?'やったね！':'ナイス チャレンジ'}</span><h1 aria-live="polite">${success?'よくできました！':'チャレンジ おつかれさま！'}</h1></div></div><div class="result-stats"><div><span>${g.mode==='survival'?'とくてん':'せいかい'}</span><strong>${g.mode==='survival'?score:g.correct}<small>${g.mode==='survival'?'点':` / ${g.total}もん`}</small></strong></div><div><span>${g.mode==='survival'?'せいかいりつ':'かかった時間'}</span><strong>${g.mode==='survival'?Math.round(decision.accuracy*100):(elapsedMs/1000).toFixed(1)}<small>${g.mode==='survival'?'％':'秒'}</small></strong></div></div>${!g.retry&&curBest>prevBest?'<span class="badge">✧ ベストきろく！'+(prevBest>0?' '+prevBest+bestUnit+' → '+curBest+bestUnit:'')+'</span>':''}${decision.perfectBonus?'<span class="badge">✧ まんてんボーナス！ ネーム２こ</span>':''}${decision.extraBonus?'<span class="badge">✧ ボーナス！ ネーム４こ</span>':''}${growth.stage>oldGrowth.stage?`<div class="growth-celebration" role="status"><span class="growth-spark" aria-hidden="true">✧</span><img src="${art(growth.stage)}" alt="あたらしいすがた ${JOBS[growth.index]}"><div><span class="eyebrow">あたらしい すがた</span><strong>${JOBS[growth.index]}に 成長！</strong><p>すがたと いろが あたらしくなったよ。</p></div></div>`:''}<div class="reward-grid">${rewards.map((w,ri)=>`<article class="word-card reward-reveal rarity-${w.rarity} ${owned.has(w.id)?'':'is-new'}" style="--i:${ri}"><span class="badge">${owned.has(w.id)?'もっているネーム':'あたらしいネーム！'}</span><span class="word-stars" aria-label="レア度${w.rarity}">${'★'.repeat(w.rarity)}</span><strong>${esc(w.text)}</strong><small>${w.part==='prefix'?'まえのネーム':'うしろのネーム'} · ${poolName(w.pool)}</small>${useNameButton(w)}</article>`).join('')}</div>${rewards.length?`<p class="result-name-line">いまの ネーム：<span class="result-name">${nameHtml()}</span></p>`:''}${!rewards.length?`<p class="muted">${g.retry?'まちがえた もんだいの れんしゅうだよ。ネームは ふつうのチャレンジで もらえるよ。':g.mode==='normal'?'９もん中８もんで、ネームが もらえるよ。':g.mode==='hard'?'10もん中８もんで、ネームゲット！':decision.accuracy<.8?'ネームは、正解率80％以上で もらえるよ。':'10もんせいかいで ネーム１こ。最大４こ！'}</p>`:''}${wrongChips}<p class="next-growth">あつめたネーム <strong>${profile.ownedIds.length} / 500</strong>${growth.nextThreshold?`　つぎまで あと${growth.remaining}こ`:'　完全コンプリート！'}</p>${actionsHtml}${g.log.some(x=>!x.correct)?`<details class="review-details"><summary>まちがえた もんだいを たしかめる</summary>${g.log.filter(x=>!x.correct).map(x=>`<p>${g.mode==='hard'?esc(x.q.story)+'<br>':''}<strong>${x.q.a} × ${x.q.b} ＝ ${x.q.answer}</strong>${g.mode==='hard'?'　'+esc(x.q.unit):''}</p>`).join('')}</details>`:''}</main>`);
     focusElement(document.getElementById('main'));document.getElementById('main').scrollTop=0;
+  }
+  function dailyIndex(day,n){
+    // 毎日かならず前の日とちがう段になる（n日でひととおり）
+    if(n<=1)return 0;if(n===2)return ((day%2)+2)%2;
+    const hh=x=>{x^=x>>>16;x=Math.imul(x,0x7feb352d);x^=x>>>15;x=Math.imul(x,0x846ca68b);x^=x>>>16;return x>>>0;};
+    const perm=b=>{const a=[...Array(n).keys()];let r=hh(b+12345);for(let i=n-1;i>0;i--){r=hh(r+i);const j=r%(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;};
+    const blk=Math.floor(day/n),i=((day%n)+n)%n,pm=perm(blk),prev=perm(blk-1);
+    if(pm[0]===prev[n-1])[pm[0],pm[1]]=[pm[1],pm[0]];
+    return pm[i];
+  }
+  function recommendDans(exclude){
+    const recs=profile.records.normal,best=(d,o)=>recs[`${d}:${o}`]?.bestCorrect??0,plays=(d,o)=>recs[`${d}:${o}`]?.plays??0;
+    const dans=Array.from({length:9},(_,i)=>i+1).filter(d=>d!==exclude);
+    const passed=d=>Math.max(best(d,'sequential'),best(d,'random'))>=8;
+    if(profile.stats.plays===0){const a=dans.includes(1)?{dan:1,label:'ここから！',kind:'first'}:null;return{a,b:null};}
+    const aDan=dans.find(d=>!passed(d)),a=aDan?{dan:aDan,label:'おすすめ',kind:'next'}:null;
+    const pool=dans.filter(d=>d!==aDan),owned=new Set(profile.ownedIds);
+    const left=d=>W.filter(w=>w.pool==='dan'+d&&!owned.has(w.id)).length;
+    const tiers=[
+      [pool.filter(d=>plays(d,'sequential')+plays(d,'random')===0),()=>'はじめての だん'],
+      [pool.filter(d=>passed(d)&&left(d)>0),d=>`ネーム あと${left(d)}こ`],
+      [pool.filter(d=>passed(d)&&best(d,'random')<8),()=>'ランダムで！','random'],
+      [pool.filter(d=>passed(d)&&Math.max(best(d,'sequential'),best(d,'random'))<9),()=>'まんてんへ！'],
+      [pool,()=>'きょうの だん']];
+    const now=new Date(),day=Math.floor((now.getTime()-now.getTimezoneOffset()*60000)/86400000);
+    let b=null;
+    for(const [list,label,order] of tiers){if(list.length){const d=list[dailyIndex(day,list.length)];b={dan:d,label:label(d),kind:'daily',order};break;}}
+    return{a,b};
   }
   function useNameButton(w){const on=profile.name[w.part+'Id']===w.id;return `<button type="button" class="btn use-name" data-action="use-name" data-id="${w.id}" aria-pressed="${on}">${on?'✓ つけているよ':'このネームを つける'}</button>`;}
   function useName(id){
@@ -1596,10 +1632,10 @@ window.KUKU_REACTIONS=[{"happy":"data:image/webp;base64,UklGRvo3AABXRUJQVlA4WAoA
   }
   async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('この端末では全画面にできません。ブラウザを横向きにしてあそべます。');}catch(_){toast('全画面にできません。このままでも あそべます。');}}
   document.addEventListener('click',ev=>{const b=ev.target.closest('[data-action]');if(!b||b.disabled)return;const a=b.dataset.action;
-    if(a==='home'){closeModal();home();}else if(a==='normal')start('normal',Number(b.dataset.dan));else if(a==='hard'||a==='survival')start(a);
+    if(a==='home'){closeModal();home();}else if(a==='normal')start('normal',Number(b.dataset.dan),undefined,b.dataset.order);else if(a==='hard'||a==='survival')start(a);
     else if(a==='order'){profile.settings.order=b.dataset.value;save();home();focusElement(findFocus(root,focusToken(b)));}
     else if(a==='keypad')keypadInput(b.dataset.key);else if(a==='answer')answerChoice(Number(b.dataset.answer));else if(a==='next')nextQuestion();else if(a==='abort')abort();else if(a==='confirm-abort'){closeModal();home();}
-    else if(a==='replay')replayWithReaction();else if(a==='next-dan'){const d=Number(b.dataset.dan);if(d>=1&&d<=9)start('normal',d);}else if(a==='use-name')useName(b.dataset.id);else if(a==='retry-wrong'){const qs=(lastAttempt.wrong||[]).map(q=>({...q,choices:E.shuffle(q.choices)}));if(qs.length)replayWithReaction(qs);}else if(a==='close')closeModal();else if(a==='fullscreen')fullscreen();
+    else if(a==='replay')replayWithReaction();else if(a==='next-dan'){const d=Number(b.dataset.dan);if(d>=1&&d<=9)start('normal',d,undefined,b.dataset.order);}else if(a==='use-name')useName(b.dataset.id);else if(a==='retry-wrong'){const qs=(lastAttempt.wrong||[]).map(q=>({...q,choices:E.shuffle(q.choices)}));if(qs.length)replayWithReaction(qs);}else if(a==='close')closeModal();else if(a==='fullscreen')fullscreen();
     else if(a==='sound'){profile.settings.sound=!profile.settings.sound;save();if(profile.settings.sound)ping();if(screen==='home'){home();focusElement(findFocus(root,focusToken(b)));}else{b.setAttribute('aria-pressed',profile.settings.sound);b.setAttribute('aria-label',`音 ${profile.settings.sound?'オン':'オフ'}`);b.innerHTML=`${profile.settings.sound?'♪':'♪̸'}<span>音</span>`;}}
     else if(a==='name')nameEditor();else if(a==='random-name')setName(true);else if(a==='save-name')setName(false);
     else if(a==='choose-name')chooseName(b.dataset.id);else if(a==='reset-name'){nameDraft={prefixId:null,suffixId:null};collection(true);}else if(a==='collection')openNames();else if(a==='collection-part'){filter.part=b.dataset.part==='suffix'?'suffix':'prefix';filter.page=0;collection();mc.querySelector('[data-part="'+filter.part+'"]').focus({preventScroll:true});dialog.scrollTop=0;}else if(a==='page'){filter.page+=Number(b.dataset.delta);collection();dialog.querySelector('.modal-body').scrollTop=0;}
